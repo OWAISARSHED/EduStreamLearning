@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, FileText, BookOpen, Bell, Settings, Shield, Sparkles, Bot, LogOut, GraduationCap, BarChart3, Clock, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, FileText, BookOpen, Bell, Settings, Shield, Sparkles, Bot, LogOut, GraduationCap, BarChart3, Clock, CheckSquare, Activity } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { notifications as notifApi } from '../../services/api';
+import { connectSocket, disconnectSocket } from '../../services/socket';
 
 const allNavItems = {
   student: [
@@ -25,6 +26,7 @@ const allNavItems = {
     { label: 'AI Insights', icon: FileText, path: '/ai-insights' },
     { label: 'AI Chat', icon: Bot, path: '/ai-chat' },
     { label: 'Resources', icon: BookOpen, path: '/resources' },
+    { label: 'Resource Access', icon: Activity, path: '/resource-access' },
     { section: 'Account' },
     { label: 'Notifications', icon: Bell, path: '/notifications' },
     { label: 'Profile', icon: Settings, path: '/profile' },
@@ -36,6 +38,7 @@ const allNavItems = {
     { label: 'AI Analytics', icon: BarChart3, path: '/admin/ai-analytics' },
     { label: 'Online Time', icon: Clock, path: '/admin/online-time' },
     { label: 'AI Chat', icon: Bot, path: '/ai-chat' },
+    { label: 'Resource Access', icon: Activity, path: '/resource-access' },
     { section: 'Account' },
     { label: 'Notifications', icon: Bell, path: '/notifications' },
     { label: 'Profile', icon: Settings, path: '/profile' },
@@ -55,9 +58,16 @@ export default function Sidebar() {
       } catch (e) {}
     };
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (user) {
+      const sock = connectSocket(user._id);
+      sock.on('notification', (notif) => {
+        setUnreadCount(prev => prev + 1);
+      });
+    }
+    return () => {
+      disconnectSocket();
+    };
+  }, [user]);
 
   if (!user) return null;
 

@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema({
   bio: { type: String, default: '' },
   expertise: [{ type: String }],
   last_login: { type: Date },
+  reset_password_token: { type: String },
+  reset_password_expires: { type: Date },
+  deleted_at: { type: Date, default: null },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 userSchema.pre('save', async function() {

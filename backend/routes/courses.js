@@ -119,7 +119,7 @@ router.post('/:id/approve', authenticate, authorize('admin'), async (req, res) =
   try {
     const course = await Course.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!course) return res.status(404).json({ message: 'Course not found' });
-    await Notification.create({
+    const notif = await Notification.create({
       user_id: course.mentor_id,
       type: 'course_approved',
       title: 'Course Approved',
@@ -128,6 +128,8 @@ router.post('/:id/approve', authenticate, authorize('admin'), async (req, res) =
       related_entity_id: course._id,
       cta_label: 'View Course',
     });
+    const io = req.app.get('io');
+    if (io) io.to(`user:${course.mentor_id}`).emit('notification', notif);
     res.json(course);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -138,7 +140,7 @@ router.post('/:id/reject', authenticate, authorize('admin'), async (req, res) =>
   try {
     const course = await Course.findByIdAndUpdate(req.params.id, { status: 'rejected', rejection_reason: req.body.reason || '' }, { new: true });
     if (!course) return res.status(404).json({ message: 'Course not found' });
-    await Notification.create({
+    const notif = await Notification.create({
       user_id: course.mentor_id,
       type: 'course_rejected',
       title: 'Course Rejected',
@@ -147,6 +149,8 @@ router.post('/:id/reject', authenticate, authorize('admin'), async (req, res) =>
       related_entity_id: course._id,
       cta_label: 'View Details',
     });
+    const io = req.app.get('io');
+    if (io) io.to(`user:${course.mentor_id}`).emit('notification', notif);
     res.json(course);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -172,7 +176,11 @@ router.post('/:id/submit', authenticate, authorize('mentor'), async (req, res) =
       related_entity_id: course._id,
       cta_label: 'Review Course',
     }));
-    if (notifs.length) await Notification.insertMany(notifs);
+    if (notifs.length) {
+      const created = await Notification.insertMany(notifs);
+      const io = req.app.get('io');
+      if (io) created.forEach(n => io.to(`user:${n.user_id}`).emit('notification', n));
+    }
     res.json(course);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -189,7 +197,7 @@ router.post('/:id/enroll', authenticate, authorize('student'), async (req, res) 
     await Enrollment.create({ student_id: req.user._id, course_id: course._id });
     course.enrolled_count += 1;
     await course.save();
-    await Notification.create({
+    const notif = await Notification.create({
       user_id: course.mentor_id,
       type: 'course_enrolled',
       title: 'New Enrollment',
@@ -198,6 +206,8 @@ router.post('/:id/enroll', authenticate, authorize('student'), async (req, res) 
       related_entity_id: course._id,
       cta_label: 'View Students',
     });
+    const io = req.app.get('io');
+    if (io) io.to(`user:${course.mentor_id}`).emit('notification', notif);
     res.status(201).json({ message: 'Enrolled successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

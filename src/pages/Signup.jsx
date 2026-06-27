@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, MessageSquare, Globe, Zap, UserCheck, Upload } from 'lucide-react';
 import { auth } from '../services/api';
 import '../styles/login.css';
 
+const ADMIN_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+
 export default function Signup() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +17,7 @@ export default function Signup() {
   const [idCardFile, setIdCardFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreeTos, setAgreeTos] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -24,6 +29,14 @@ export default function Signup() {
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+    if (role === 'admin' && !ADMIN_PASSWORD_REGEX.test(password)) {
+      setError('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+      return;
+    }
+    if (!agreeTos) {
+      setError('You must agree to the Terms of Service and Privacy Policy');
       return;
     }
     setLoading(true);
@@ -54,65 +67,65 @@ export default function Signup() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-left">
+    <div className="login-page" role="main" aria-label="Sign up page">
+      <div className="login-left" aria-hidden="true">
         <div className="login-brand">
-          <div className="login-brand-icon">E</div>
+          <div className="login-brand-icon" aria-hidden="true">E</div>
           <h1>EduStream</h1>
-          <p>AI-Assisted Learning & Multilingual Mentor Ecosystem powered by intelligent technology</p>
+          <p>{t('app.tagline')}</p>
         </div>
         <div className="login-features">
           <div className="login-feature">
-            <GraduationCap size={20} />
+            <GraduationCap size={20} aria-hidden="true" />
             <span>AI-powered learning assistance & document insights</span>
           </div>
           <div className="login-feature">
-            <Globe size={20} />
+            <Globe size={20} aria-hidden="true" />
             <span>Multilingual support — English, Urdu & more</span>
           </div>
           <div className="login-feature">
-            <MessageSquare size={20} />
+            <MessageSquare size={20} aria-hidden="true" />
             <span>Interactive forums with mentor-verified responses</span>
           </div>
           <div className="login-feature">
-            <Zap size={20} />
+            <Zap size={20} aria-hidden="true" />
             <span>Real-time collaboration & milestone tracking</span>
           </div>
         </div>
       </div>
       <div className="login-right">
         <div className="login-form-container">
-          <h2>Create Account</h2>
+          <h2>{t('auth.signup')}</h2>
           <p>Join EduStream and start your learning journey</p>
-          {error && <div className="login-error">{error}</div>}
-          <form className="login-form" onSubmit={handleSignup}>
+          {error && <div className="login-error" role="alert">{error}</div>}
+          <form className="login-form" onSubmit={handleSignup} noValidate>
             <div className="form-group">
-              <label>Full Name</label>
-              <input type="text" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} required />
+              <label htmlFor="signup-name">Full Name</label>
+              <input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} required aria-required="true" autoComplete="name" />
             </div>
             <div className="form-group">
-              <label>Email Address</label>
-              <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+              <label htmlFor="signup-email">{t('auth.email')}</label>
+              <input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required aria-required="true" autoComplete="email" />
             </div>
             <div className="form-group">
               <label>I want to join as</label>
-              <div className="role-selector">
-                <button type="button" className={`role-btn ${role === 'student' ? 'active' : ''}`} onClick={() => setRole('student')}>
-                  <UserCheck size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              <div className="role-selector" role="radiogroup" aria-label="Select role">
+                <button type="button" className={`role-btn ${role === 'student' ? 'active' : ''}`} onClick={() => setRole('student')} role="radio" aria-checked={role === 'student'}>
+                  <UserCheck size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
                   Student
                 </button>
-                <button type="button" className={`role-btn ${role === 'mentor' ? 'active' : ''}`} onClick={() => setRole('mentor')}>
-                  <UserCheck size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                <button type="button" className={`role-btn ${role === 'mentor' ? 'active' : ''}`} onClick={() => setRole('mentor')} role="radio" aria-checked={role === 'mentor'}>
+                  <UserCheck size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true" />
                   Mentor
                 </button>
               </div>
             </div>
             {role === 'mentor' && (
               <div className="form-group">
-                <label>Upload ID Card (Required for mentor verification)</label>
+                <label htmlFor="idCardInput">Upload ID Card (Required for mentor verification)</label>
                 <div style={{ border: '2px dashed var(--border-color)', borderRadius: 8, padding: 16, textAlign: 'center', cursor: 'pointer' }}
-                  onClick={() => document.getElementById('idCardInput').click()}>
-                  <Upload size={24} style={{ color: 'var(--text-muted)', marginBottom: 8 }} />
+                  onClick={() => document.getElementById('idCardInput').click()} role="button" tabIndex={0} aria-label="Upload ID card" onKeyDown={e => e.key === 'Enter' && document.getElementById('idCardInput').click()}>
+                  <Upload size={24} style={{ color: 'var(--text-muted)', marginBottom: 8 }} aria-hidden="true" />
                   <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {idCardFile ? idCardFile.name : 'Click to upload your ID card'}
                   </p>
@@ -122,24 +135,33 @@ export default function Signup() {
               </div>
             )}
             <div className="form-group">
-              <label>Password</label>
-              <input type="password" placeholder="Create a password (min. 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required />
+              <label htmlFor="signup-password">{t('auth.password')}</label>
+              <input id="signup-password" type="password" placeholder="Create a password (min. 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required aria-required="true" aria-describedby="password-reqs" autoComplete="new-password" />
+              <span id="password-reqs" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                {role === 'admin' ? 'Min 8 chars, uppercase, lowercase, number & special character required' : 'Min 6 characters'}
+              </span>
             </div>
             <div className="form-group">
-              <label>Confirm Password</label>
-              <input type="password" placeholder="Confirm your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+              <label htmlFor="signup-confirm">Confirm Password</label>
+              <input id="signup-confirm" type="password" placeholder="Confirm your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required aria-required="true" autoComplete="new-password" />
             </div>
-            <button type="submit" className="login-btn" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Create Account'}
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" id="tos" checked={agreeTos} onChange={e => setAgreeTos(e.target.checked)} style={{ width: 16, height: 16 }} aria-required="true" />
+              <label htmlFor="tos" style={{ fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                I agree to the <a href="/terms" target="_blank" style={{ color: '#7030e0' }} tabIndex={0}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: '#7030e0' }} tabIndex={0}>Privacy Policy</a>
+              </label>
+            </div>
+            <button type="submit" className="login-btn" disabled={loading} aria-label="Create your account">
+              {loading ? 'Creating Account...' : t('auth.signup')}
             </button>
             {role === 'mentor' && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }} role="status">
                 After registration, your account will be reviewed by an admin. You'll be able to log in once approved.
               </p>
             )}
-            <div className="login-divider">or continue with</div>
+            <div className="login-divider" role="separator" aria-orientation="horizontal">or continue with</div>
             <p className="register-link">
-              Already have an account? <Link to="/login">Sign in</Link>
+              {t('auth.hasAccount')} <Link to="/login">{t('auth.login')}</Link>
             </p>
           </form>
           <div className="login-footer">

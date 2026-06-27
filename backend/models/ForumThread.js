@@ -13,6 +13,8 @@ const forumThreadSchema = new mongoose.Schema({
   verified: { type: Boolean, default: false },
   verified_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   channel: { type: String, enum: ['general', 'code_review', 'project_tracking'], default: 'general' },
+  attachment_url: { type: String, default: '' },
+  attachment_name: { type: String, default: '' },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 forumThreadSchema.index({ status: 1, created_at: -1 });

@@ -17,6 +17,9 @@ import AdminOnlineTime from './pages/AdminOnlineTime';
 import UserProfile from './pages/UserProfile';
 import NotificationCenter from './pages/NotificationCenter';
 import AIChat from './pages/AIChat';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import ResourceAccessLog from './pages/ResourceAccessLog';
 
 function HomeRedirect() {
   const { user } = useAuth();
@@ -30,6 +33,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
         <Route path="/ai-prompt" element={<ProtectedRoute roles={['student']}><MultilingualPrompt /></ProtectedRoute>} />
@@ -44,6 +49,7 @@ export default function App() {
         <Route path="/profile" element={<ProtectedRoute roles={['student','mentor','admin']}><UserProfile /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute roles={['student','mentor','admin']}><NotificationCenter /></ProtectedRoute>} />
         <Route path="/ai-chat" element={<ProtectedRoute roles={['student','mentor','admin']}><AIChat /></ProtectedRoute>} />
+        <Route path="/resource-access" element={<ProtectedRoute roles={['mentor','admin']}><ResourceAccessLog /></ProtectedRoute>} />
       </Route>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<HomeRedirect />} />

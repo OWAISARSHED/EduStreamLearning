@@ -16,6 +16,8 @@ export const auth = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   me: () => request('/auth/me'),
+  forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token, password) => request(`/auth/reset-password/${token}`, { method: 'POST', body: JSON.stringify({ password }) }),
 };
 
 export const resources = {
@@ -24,6 +26,9 @@ export const resources = {
   create: (data) => request('/resources', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => request(`/resources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => request(`/resources/${id}`, { method: 'DELETE' }),
+  logAccess: (id, action) => request(`/resources/${id}/access`, { method: 'POST', body: JSON.stringify({ action }) }),
+  accessLogs: (params) => request(`/resources/access-logs?${new URLSearchParams(params)}`),
+  versions: (id) => request(`/resources/${id}/versions`),
 };
 
 export const forum = {
@@ -34,6 +39,16 @@ export const forum = {
   deleteThread: (id) => request(`/forum/threads/${id}`, { method: 'DELETE' }),
   verifyThread: (id) => request(`/forum/threads/${id}/verify`, { method: 'POST' }),
   postReply: (id, body) => request(`/forum/threads/${id}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
+  uploadFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('edustream_token');
+    return fetch('/api/forum/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(r => r.json());
+  },
 };
 
 export const ai = {
@@ -49,6 +64,8 @@ export const ai = {
 export const users = {
   list: (params) => request(`/users?${new URLSearchParams(params)}`),
   update: (id, data) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  create: (data) => request('/users/create', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 };
 
 export const milestones = {

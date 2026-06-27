@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const express = require('express');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -103,6 +105,43 @@ router.get('/mentor-stats', authenticate, authorize('mentor'), async (req, res) 
       totalEnrollments,
       totalWatchTimeSeconds: totalWatchTime[0]?.total || 0,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/create', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ message: 'Name, email, and password required' });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: 'Email already registered' });
+    const user = await User.create({ name, email, password_hash: password, role: role || 'student' });
+    await AuditLog.create({ actor_id: req.user._id, action_type: 'user_created_by_admin', target_entity: 'users', target_id: user._id, details: { email, role } });
+    res.status(201).json({ message: 'User created', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role === 'admin') return res.status(403).json({ message: 'Cannot delete admin accounts' });
+    const suffix = Math.random().toString(36).substring(2, 8);
+    user.name = 'Deleted User';
+    user.email = `deleted-${suffix}@edustream.local`;
+    user.password_hash = crypto.randomBytes(20).toString('hex');
+    user.profile_picture_url = '';
+    user.bio = '';
+    user.expertise = [];
+    user.id_card_url = '';
+    user.account_status = 'suspended';
+    user.deleted_at = new Date();
+    await user.save();
+    await AuditLog.create({ actor_id: req.user._id, action_type: 'user_deleted', target_entity: 'users', target_id: user._id, details: { anonymized: true } });
+    res.json({ message: 'User account deleted and anonymized' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

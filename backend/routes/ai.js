@@ -6,6 +6,26 @@ const { translatePrompt, summarizeDocument, suggestTags, chatWithAI } = require(
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/ai/translate:
+ *   post:
+ *     tags: [AI]
+ *     summary: Translate text using AI
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text: { type: string }
+ *               target_language: { type: string }
+ *     responses:
+ *       200:
+ *         description: Translated text
+ */
 router.post('/translate', authenticate, async (req, res) => {
   try {
     const { text, target_language } = req.body;
@@ -24,6 +44,26 @@ router.post('/translate', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/ai/summarize:
+ *   post:
+ *     tags: [AI]
+ *     summary: Summarize document text
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text: { type: string }
+ *               resource_id: { type: string }
+ *     responses:
+ *       200:
+ *         description: Document summary
+ */
 router.post('/summarize', authenticate, async (req, res) => {
   try {
     const { text, resource_id } = req.body;

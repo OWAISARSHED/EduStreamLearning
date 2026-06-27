@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, FileText, File, Upload, Trash2, Edit3, HardDrive } from 'lucide-react';
+import { Search, FileText, File, Upload, Trash2, Edit3, HardDrive, Download, Eye, History, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { resources as resourcesApi } from '../services/api';
 import '../styles/repository.css';
@@ -8,6 +8,8 @@ export default function DocumentRepository() {
   const { user } = useAuth();
   const [resources, setResources] = useState([]);
   const [catFilter, setCatFilter] = useState('All');
+  const [versionModal, setVersionModal] = useState(null);
+  const [versions, setVersions] = useState([]);
 
   const isStudent = user?.role === 'student';
   const isMentor = user?.role === 'mentor';
@@ -24,7 +26,24 @@ export default function DocumentRepository() {
     setResources(prev => prev.filter(r => r._id !== id));
   };
 
+  const handleAccess = async (resource, action) => {
+    try {
+      await resourcesApi.logAccess(resource._id, action);
+    } catch (e) {}
+    if (action === 'download' && resource.file_url) {
+      window.open(resource.file_url, '_blank');
+    }
+  };
+
   const categories = ['All', 'core_curriculum', 'advanced_labs', 'community_assets'];
+
+  const handleShowVersions = async (r) => {
+    try {
+      const data = await resourcesApi.versions(r._id);
+      setVersions(data.versions || []);
+      setVersionModal(r);
+    } catch (e) { alert('Failed to load versions'); }
+  };
 
   return (
     <>
@@ -83,7 +102,7 @@ export default function DocumentRepository() {
         ) : resources.map((r, i) => {
           const iconColor = ['#7030e0', '#00c853', '#2196f3', '#ff9800'][i % 4];
           return (
-            <div key={r._id} className="resource-card">
+            <div key={r._id} className="resource-card" style={{ cursor: isStudent ? 'pointer' : 'default' }} onClick={() => isStudent && handleAccess(r, 'view')}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div className="resource-icon" style={{ background: `${iconColor}22`, color: iconColor }}>
                   {r.file_type === 'pdf' ? <FileText size={22} /> : <File size={22} />}
@@ -91,7 +110,7 @@ export default function DocumentRepository() {
                 {!isStudent && (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="action-btn" style={{ padding: '4px 8px' }}><Edit3 size={12} /></button>
-                    <button className="action-btn" style={{ padding: '4px 8px', background: 'rgba(255,68,68,0.15)', color: 'var(--danger-light)' }} onClick={() => handleDelete(r._id)}><Trash2 size={12} /></button>
+                    <button className="action-btn" style={{ padding: '4px 8px', background: 'rgba(255,68,68,0.15)', color: 'var(--danger-light)' }} onClick={(e) => { e.stopPropagation(); handleDelete(r._id); }}><Trash2 size={12} /></button>
                   </div>
                 )}
               </div>
@@ -104,11 +123,48 @@ export default function DocumentRepository() {
                 <span>{(r.file_size / 1024 / 1024).toFixed(1)} MB</span>
                 <span>{r.download_count || 0} downloads</span>
                 <span>v{r.version || 1}</span>
+                {!isStudent && (
+                  <button className="action-btn" style={{ padding: '2px 6px', fontSize: 10 }} onClick={(e) => { e.stopPropagation(); handleShowVersions(r); }}>
+                    <History size={11} /> Versions
+                  </button>
+                )}
               </div>
+              {isStudent && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button className="action-btn" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }} onClick={(e) => { e.stopPropagation(); handleAccess(r, 'view'); }}><Eye size={12} /> View</button>
+                  <button className="action-btn" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }} onClick={(e) => { e.stopPropagation(); handleAccess(r, 'download'); }}><Download size={12} /> Download</button>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {versionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setVersionModal(null)}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: 12, padding: 24, width: 500, maxWidth: '90vw' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Version History: {versionModal.title}</h2>
+              <button onClick={() => setVersionModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
+            </div>
+            {versions.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>No version history available</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {versions.map((v, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 8, background: v.current ? 'rgba(112,48,224,0.08)' : 'var(--bg-secondary)', border: v.current ? '1px solid rgba(112,48,224,0.2)' : '1px solid var(--border-color)' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>Version {v.version} {v.current && <span style={{ fontSize: 10, color: '#7030e0', background: 'rgba(112,48,224,0.12)', padding: '1px 6px', borderRadius: 4, marginLeft: 6 }}>Current</span>}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(v.uploaded_at).toLocaleString()}</div>
+                    </div>
+                    <a href={v.file_url} target="_blank" rel="noreferrer" className="action-btn" style={{ fontSize: 11, padding: '4px 10px', textDecoration: 'none' }}>Download</a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

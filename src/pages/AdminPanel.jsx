@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, BookOpen, CheckCircle, XCircle, Clock, UserCheck, Activity, BarChart3, FileText, Search } from 'lucide-react';
+import { Shield, Users, BookOpen, CheckCircle, XCircle, Clock, UserCheck, Activity, BarChart3, FileText, Search, Plus, X } from 'lucide-react';
 import { users as usersApi, courses } from '../services/api';
 import '../styles/admin.css';
 
@@ -10,6 +10,8 @@ export default function AdminPanel() {
   const [pendingMentors, setPendingMentors] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ totalStudents: 0, totalMentors: 0, pendingMentors: 0, totalCourses: 0, pendingCourses: 0, approvedCourses: 0, totalEnrollments: 0 });
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'student' });
 
   useEffect(() => {
     loadData();
@@ -67,6 +69,24 @@ export default function AdminPanel() {
     const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
     await usersApi.update(id, { account_status: newStatus });
     loadData();
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) return;
+    try {
+      await usersApi.create(newUser);
+      setShowCreateUser(false);
+      setNewUser({ name: '', email: '', password: '', role: 'student' });
+      loadData();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Delete this user? Their posts will be anonymized.')) return;
+    try {
+      await usersApi.delete(id);
+      loadData();
+    } catch (e) { alert(e.message); }
   };
 
   const tabs = ['overview', 'courses', 'mentors', 'users'];
@@ -257,6 +277,9 @@ export default function AdminPanel() {
         <div className="admin-card">
           <div className="admin-card-header">
             <h3><Users size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} /> User Management</h3>
+            <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setShowCreateUser(true)}>
+              <Plus size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Create User
+            </button>
           </div>
           <table className="admin-table">
             <thead>
@@ -292,15 +315,56 @@ export default function AdminPanel() {
                     <td><span className={`status-dot ${u.account_status}`} />{u.account_status?.charAt(0).toUpperCase() + u.account_status?.slice(1)}</td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                     <td>
-                      <button className="table-action" onClick={() => handleSuspendUser(u._id, u.account_status)}>
-                        {u.account_status === 'suspended' ? 'Activate' : 'Suspend'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="table-action" onClick={() => handleSuspendUser(u._id, u.account_status)}>
+                          {u.account_status === 'suspended' ? 'Activate' : 'Suspend'}
+                        </button>
+                        {u.role !== 'admin' && (
+                          <button className="table-action" style={{ background: 'rgba(255,68,68,0.15)', color: 'var(--danger-light)' }} onClick={() => handleDeleteUser(u._id)}>
+                            <XCircle size={12} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+
+          {showCreateUser && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowCreateUser(false)}>
+              <div style={{ background: 'var(--bg-primary)', borderRadius: 12, padding: 24, width: 420, maxWidth: '90vw' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700 }}>Create New User</h3>
+                  <button onClick={() => setShowCreateUser(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Name</label>
+                    <input type="text" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-color)', fontSize: 13 }} placeholder="Full name" value={newUser.name} onChange={e => setNewUser(p => ({ ...p, name: e.target.value }))} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Email</label>
+                    <input type="email" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-color)', fontSize: 13 }} placeholder="Email address" value={newUser.email} onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Password</label>
+                    <input type="password" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-color)', fontSize: 13 }} placeholder="Min. 6 characters" value={newUser.password} onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Role</label>
+                    <select style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-color)', fontSize: 13 }} value={newUser.role} onChange={e => setNewUser(p => ({ ...p, role: e.target.value }))}>
+                      <option value="student">Student</option>
+                      <option value="mentor">Mentor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <button className="btn-primary" style={{ padding: '10px', fontSize: 13, marginTop: 4 }} onClick={handleCreateUser}>Create User</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

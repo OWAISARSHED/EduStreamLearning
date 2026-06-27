@@ -89,3 +89,29 @@ input, textarea, select {
   font-family: inherit;
   outline: none;
 }
+
+[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--border-color); }
+[dir="rtl"] .sidebar-logo { padding: 20px 16px 20px 20px; }
+[dir="rtl"] .nav-item { padding: 10px 16px 10px 12px; }
+[dir="rtl"] .nav-item svg:first-child { margin-right: 0; margin-left: 10px; }
+[dir="rtl"] .topbar-search input { text-align: right; }
+[dir="rtl"] .page-header { text-align: right; }
+[dir="rtl"] .forum-layout { flex-direction: row-reverse; }
+[dir="rtl"] .stats-grid { direction: ltr; }
+[dir="rtl"] .forum-sidebar { border-right: none; border-left: 1px solid var(--border-color); }
+[dir="rtl"] .login-left { border-radius: 0 24px 24px 0; }
+html[dir="rtl"] { direction: rtl; }
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent-primary);
+  color: #fff;
+  padding: 8px 16px;
+  z-index: 10000;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}

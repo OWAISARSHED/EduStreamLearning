@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, MessageSquare, Globe, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/login.css';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,56 +25,56 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-left">
+    <div className="login-page" role="main" aria-label="Login page">
+      <div className="login-left" aria-hidden="true">
         <div className="login-brand">
-          <div className="login-brand-icon">E</div>
+          <div className="login-brand-icon" aria-hidden="true">E</div>
           <h1>EduStream</h1>
-          <p>AI-Assisted Learning & Multilingual Mentor Ecosystem powered by intelligent technology</p>
+          <p>{t('app.tagline')}</p>
         </div>
         <div className="login-features">
           <div className="login-feature">
-            <GraduationCap size={20} />
+            <GraduationCap size={20} aria-hidden="true" />
             <span>AI-powered learning assistance & document insights</span>
           </div>
           <div className="login-feature">
-            <Globe size={20} />
+            <Globe size={20} aria-hidden="true" />
             <span>Multilingual support — English, Urdu & more</span>
           </div>
           <div className="login-feature">
-            <MessageSquare size={20} />
+            <MessageSquare size={20} aria-hidden="true" />
             <span>Interactive forums with mentor-verified responses</span>
           </div>
           <div className="login-feature">
-            <Zap size={20} />
+            <Zap size={20} aria-hidden="true" />
             <span>Real-time collaboration & milestone tracking</span>
           </div>
         </div>
       </div>
       <div className="login-right">
         <div className="login-form-container">
-          <h2>Welcome Back</h2>
+          <h2>{t('auth.login')}</h2>
           <p>Sign in to continue your learning journey</p>
-          {error && <div className="login-error">{error}</div>}
-          <form className="login-form" onSubmit={handleLogin}>
+          {error && <div className="login-error" role="alert">{error}</div>}
+          <form className="login-form" onSubmit={handleLogin} noValidate>
             <div className="form-group">
-              <label>Email Address</label>
-              <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+              <label htmlFor="login-email">{t('auth.email')}</label>
+              <input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required aria-required="true" autoComplete="email" />
             </div>
             <div className="form-group">
-              <label>Password</label>
-              <input type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <label htmlFor="login-password">{t('auth.password')}</label>
+              <input id="login-password" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required aria-required="true" autoComplete="current-password" />
             </div>
             <div className="form-options">
               <label>
                 <input type="checkbox" defaultChecked /> Remember me
               </label>
-              <a href="#">Forgot password?</a>
+              <Link to="/forgot-password" aria-label="Forgot password">{t('auth.forgotPassword')}</Link>
             </div>
-            <button type="submit" className="login-btn">Sign In</button>
-            <div className="login-divider">or continue with</div>
+            <button type="submit" className="login-btn" aria-label="Sign in to your account">{t('auth.login')}</button>
+            <div className="login-divider" role="separator" aria-orientation="horizontal">or continue with</div>
             <p className="register-link">
-              Don't have an account? <Link to="/signup">Sign up</Link>
+              {t('auth.noAccount')} <Link to="/signup">{t('auth.signup')}</Link>
             </p>
           </form>
           <div className="login-footer">

@@ -9,7 +9,7 @@ EduStream is a full-stack learning management platform with role-based dashboard
 | Frontend  | React 19, Vite, React Router, Lucide Icons            |
 | Backend   | Node.js, Express.js, Mongoose                         |
 | Database  | MongoDB (Atlas or local)                              |
-| AI        | Ollama (local LLM for translation, summarization, chat) |
+| AI        | Google Gemini API (translation, summarization, chat) |
 | Auth      | JWT (JSON Web Tokens) + bcryptjs                      |
 
 ## Features
@@ -42,7 +42,7 @@ EduStream is a full-stack learning management platform with role-based dashboard
 ### Prerequisites
 - Node.js 18+
 - MongoDB (running locally or a connection string)
-- [Ollama](https://ollama.ai) with `llama3.2` model (for AI features)
+- Google Gemini API key (for AI features)
 
 ### 1. Clone & Install
 
@@ -64,7 +64,7 @@ Create `backend/.env`:
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/edustream
 JWT_SECRET=your-secret-key-change-in-production
-OLLAMA_BASE_URL=http://localhost:11434
+GEMINI_API_KEY=your-google-gemini-api-key
 ```
 
 ### 3. Run the Application
@@ -101,7 +101,7 @@ edu-stream/
 │   ├── models/             # Mongoose models
 │   ├── routes/             # Express routes
 │   ├── middleware/         # Auth middleware
-│   ├── services/           # Ollama AI service
+│   ├── services/           # Gemini AI service
 │   └── server.js           # Entry point
 └── package.json
 ```

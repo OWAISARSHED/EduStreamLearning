@@ -1,0 +1,261 @@
+/* ── Course Viewer Layout ─────────────────────────────────── */
+.cv-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Top Bar */
+.cv-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.cv-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.cv-back-btn:hover { background: var(--bg-tertiary); }
+.cv-course-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-overall-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.cv-progress-track {
+  width: 120px;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cv-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7030e0, #a855f7);
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+/* Body */
+.cv-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Main Content */
+.cv-main {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+/* Video Player */
+.cv-video-container {
+  position: relative;
+  background: #000;
+  flex-shrink: 0;
+}
+.cv-video {
+  width: 100%;
+  max-height: 65vh;
+  display: block;
+  background: #000;
+}
+.cv-controls {
+  background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 100%);
+  padding: 8px 16px 12px;
+}
+.cv-seekbar {
+  position: relative;
+  height: 5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.cv-seekbar:hover { height: 7px; }
+.cv-seekbar-fill {
+  position: absolute;
+  left: 0; top: 0; height: 100%;
+  background: #7030e0;
+  border-radius: 10px;
+  transition: width 0.1s linear;
+}
+.cv-seekbar-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 6px rgba(168,85,247,0.6);
+}
+.cv-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cv-ctrl-btn {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+.cv-ctrl-btn:hover { background: rgba(255,255,255,0.15); }
+.cv-time {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Resource title bar */
+.cv-resource-title-bar {
+  padding: 16px 20px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Audio / PDF / Other */
+.cv-audio-box,
+.cv-other-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--bg-primary);
+  text-align: center;
+}
+.cv-pdf-box {
+  flex: 1;
+  display: flex;
+}
+.cv-pdf-frame {
+  flex: 1;
+  border: none;
+  width: 100%;
+  min-height: 70vh;
+}
+
+/* Sidebar */
+.cv-sidebar {
+  width: 310px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease;
+}
+.cv-sidebar-closed {
+  width: 48px;
+  overflow: hidden;
+}
+.cv-sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 1;
+}
+.cv-module {
+  padding: 0 0 8px;
+}
+.cv-module-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+.cv-lesson {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  gap: 10px;
+  border-radius: 0;
+  transition: background 0.15s;
+}
+.cv-lesson:hover { background: rgba(255,255,255,0.04); }
+.cv-lesson-active {
+  background: rgba(112,48,224,0.12);
+  border-left: 3px solid #7030e0;
+}
+.cv-lesson-icon { flex-shrink: 0; }
+.cv-lesson-info {
+  flex: 1;
+  min-width: 0;
+}
+.cv-lesson-name {
+  display: block;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-lesson-progress {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.cv-lesson-progress-fill {
+  height: 100%;
+  background: #ff9800;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .cv-sidebar { width: 100%; position: fixed; bottom: 0; left: 0; right: 0; height: 40vh; border-left: none; border-top: 1px solid var(--border-color); z-index: 10; }
+  .cv-body { flex-direction: column; }
+  .cv-overall-progress { display: none; }
+}

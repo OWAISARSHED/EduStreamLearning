@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, BookOpen, CheckCircle, XCircle, Clock, UserCheck, Activity, BarChart3, FileText, Search, Plus, X } from 'lucide-react';
+import { Shield, Users, BookOpen, CheckCircle, XCircle, Clock, UserCheck, Activity, BarChart3, FileText, Search, Plus, X, Eye, Layers, ChevronDown, ChevronRight, Link, ClipboardList, HelpCircle, Loader } from 'lucide-react';
 import { users as usersApi, courses } from '../services/api';
 import '../styles/admin.css';
 
@@ -12,6 +12,10 @@ export default function AdminPanel() {
   const [stats, setStats] = useState({ totalStudents: 0, totalMentors: 0, pendingMentors: 0, totalCourses: 0, pendingCourses: 0, approvedCourses: 0, totalEnrollments: 0 });
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'student' });
+  const [idCardModal, setIdCardModal] = useState(null); // { name, url }
+  const [courseModal, setCourseModal] = useState(null); // full course details object
+  const [courseModalLoading, setCourseModalLoading] = useState(false);
+  const [expandedModules, setExpandedModules] = useState({});
 
   useEffect(() => {
     loadData();
@@ -41,6 +45,21 @@ export default function AdminPanel() {
       await usersApi.update(id, { role: newRole });
     } catch (e) {
       setUserRoles(prev => ({ ...prev, [id]: allUsers.find(u => u._id === id)?.role }));
+    }
+  };
+
+  const handleViewCourse = async (courseId) => {
+    setCourseModalLoading(true);
+    setCourseModal({ _loading: true });
+    setExpandedModules({});
+    try {
+      const data = await courses.get(courseId);
+      setCourseModal(data); // { course, resources, assignments, quizzes }
+    } catch (e) {
+      setCourseModal(null);
+      alert('Failed to load course details: ' + e.message);
+    } finally {
+      setCourseModalLoading(false);
     }
   };
 
@@ -191,7 +210,7 @@ export default function AdminPanel() {
           ) : (
             <table className="admin-table">
               <thead>
-                <tr><th>Course</th><th>Mentor</th><th>Level</th><th>Submitted</th><th>Actions</th></tr>
+                <tr><th>Course</th><th>Mentor</th><th>Modules</th><th>Submitted</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {pendingCourses.map((c, i) => (
@@ -201,10 +220,13 @@ export default function AdminPanel() {
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(c.description || '').substring(0, 60)}...</div>
                     </td>
                     <td style={{ fontSize: 12 }}>{c.mentor_id?.name || 'Unknown'}</td>
-                    <td><span className="priority-badge" style={{ fontSize: 11 }}>{c.level}</span></td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{(c.modules || []).length} modules</td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleDateString()}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <button className="table-action" style={{ background: 'rgba(112,48,224,0.15)', color: 'var(--primary-light)' }} onClick={() => handleViewCourse(c._id)}>
+                          <Eye size={14} /> View
+                        </button>
                         <button className="table-action" style={{ background: 'rgba(0,200,83,0.15)', color: 'var(--success)' }} onClick={() => handleApproveCourse(c._id)}>
                           <CheckCircle size={14} /> Approve
                         </button>
@@ -247,11 +269,11 @@ export default function AdminPanel() {
                     <td style={{ fontSize: 12 }}>{m.email}</td>
                     <td>
                       {m.id_card_url ? (
-                        <a href={m.id_card_url} target="_blank" rel="noreferrer" className="table-action" style={{ fontSize: 11 }}>
+                        <button className="table-action" style={{ fontSize: 11 }} onClick={() => setIdCardModal({ name: m.name, url: m.id_card_url })}>
                           <FileText size={12} /> View ID
-                        </a>
+                        </button>
                       ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No ID</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No ID uploaded</span>
                       )}
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(m.created_at).toLocaleDateString()}</td>
@@ -365,6 +387,145 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* ── ID Card Modal ── */}
+      {idCardModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setIdCardModal(null)}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: 14, padding: 24, maxWidth: 600, width: '90vw', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>ID Card — {idCardModal.name}</h3>
+              <button onClick={() => setIdCardModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+            </div>
+            <div style={{ borderRadius: 8, overflow: 'hidden', background: 'var(--bg-secondary)', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(idCardModal.url) ? (
+                <img src={idCardModal.url} alt="ID Card" style={{ width: '100%', borderRadius: 8, display: 'block' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+              ) : null}
+              <div style={{ display: /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(idCardModal.url) ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 40, color: 'var(--text-muted)' }}>
+                <FileText size={48} />
+                <p style={{ fontSize: 13 }}>This file cannot be previewed directly.</p>
+                <a href={idCardModal.url} target="_blank" rel="noreferrer" className="btn-primary" style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none', borderRadius: 8 }}>Open / Download File</a>
+              </div>
+            </div>
+            <div style={{ marginTop: 12, textAlign: 'right' }}>
+              <a href={idCardModal.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--primary-light)' }}>Open in new tab ↗</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Course Detail Modal ── */}
+      {courseModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setCourseModal(null)}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: 14, padding: 28, maxWidth: 720, width: '92vw', maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+
+            {/* Loading */}
+            {courseModal._loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200, gap: 12, color: 'var(--text-muted)' }}>
+                <Loader size={22} style={{ animation: 'spin 1s linear infinite' }} /> Loading course details...
+              </div>
+            ) : (() => {
+              const c = courseModal.course || courseModal;
+              const resources = courseModal.resources || [];
+              const assignments = courseModal.assignments || [];
+              const quizzes = courseModal.quizzes || [];
+              return (
+                <>
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                    <div>
+                      <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{c.title}</h3>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        By <strong style={{ color: 'var(--text-secondary)' }}>{c.mentor_id?.name || 'Unknown'}</strong>
+                        {c.mentor_id?.email && <> &bull; {c.mentor_id.email}</>}
+                        <span style={{ marginLeft: 10, background: 'rgba(112,48,224,0.15)', color: 'var(--primary-light)', borderRadius: 20, padding: '1px 8px', fontSize: 11 }}>{c.level}</span>
+                        <span style={{ marginLeft: 6, background: 'rgba(255,152,0,0.15)', color: '#ff9800', borderRadius: 20, padding: '1px 8px', fontSize: 11 }}>{c.category || 'Uncategorized'}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => setCourseModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}><X size={20} /></button>
+                  </div>
+
+                  {/* Description */}
+                  <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: 14, marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    {c.description || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No description provided.</span>}
+                  </div>
+
+                  {/* Resources */}
+                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+                    <Link size={14} style={{ color: '#7030e0' }} /> Resources ({resources.length})
+                  </h4>
+                  {resources.length === 0 ? (
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, paddingLeft: 4 }}>No resources uploaded yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                      {resources.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 14px', border: '1px solid var(--border-color)' }}>
+                          <FileText size={14} style={{ color: '#7030e0', flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title || r.file_name || 'Untitled'}</div>
+                            {r.description && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</div>}
+                          </div>
+                          {r.file_url && (
+                            <a href={`http://localhost:5000${r.file_url}`} target="_blank" rel="noreferrer"
+                              style={{ fontSize: 11, color: 'var(--primary-light)', whiteSpace: 'nowrap', textDecoration: 'none', border: '1px solid rgba(112,48,224,0.3)', borderRadius: 6, padding: '3px 8px' }}>
+                              View ↗
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Assignments */}
+                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+                    <ClipboardList size={14} style={{ color: '#00c853' }} /> Assignments ({assignments.length})
+                  </h4>
+                  {assignments.length === 0 ? (
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, paddingLeft: 4 }}>No assignments added yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                      {assignments.map((a, i) => (
+                        <div key={i} style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 14px', border: '1px solid var(--border-color)', fontSize: 13 }}>
+                          <div style={{ fontWeight: 600 }}>{a.title}</div>
+                          {a.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{a.description}</div>}
+                          {a.due_date && <div style={{ fontSize: 11, color: '#ff9800', marginTop: 3 }}>Due: {new Date(a.due_date).toLocaleDateString()}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Quizzes */}
+                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+                    <HelpCircle size={14} style={{ color: '#ff9800' }} /> Quizzes ({quizzes.length})
+                  </h4>
+                  {quizzes.length === 0 ? (
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, paddingLeft: 4 }}>No quizzes added yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                      {quizzes.map((q, i) => (
+                        <div key={i} style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 14px', border: '1px solid var(--border-color)', fontSize: 13 }}>
+                          <div style={{ fontWeight: 600 }}>{q.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{(q.questions || []).length} questions &bull; Pass: {q.passing_score || 60}%</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                    <button className="table-action" style={{ background: 'rgba(255,68,68,0.15)', color: 'var(--danger-light)', padding: '8px 16px' }}
+                      onClick={() => { handleRejectCourse(c._id); setCourseModal(null); }}>
+                      <XCircle size={15} /> Reject Course
+                    </button>
+                    <button className="btn-primary" style={{ padding: '8px 16px', fontSize: 13 }}
+                      onClick={() => { handleApproveCourse(c._id); setCourseModal(null); }}>
+                      <CheckCircle size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Approve Course
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       )}
     </>

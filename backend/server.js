@@ -18,12 +18,22 @@ const io = new Server(server, {
 
 app.set('io', io);
 
+// General limiter — 500 requests per 15 min
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   message: { message: 'Too many requests, please try again later.' },
 });
+
+// Auth limiter — 50 requests per 15 min (login, OTP etc.)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { message: 'Too many auth requests, please try again later.' },
+});
+
 app.use('/api/', limiter);
+app.use('/api/auth/', authLimiter);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -46,6 +56,7 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/milestones', require('./routes/milestones'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/audit', require('./routes/audit'));
+app.use('/api/ocr', require('./routes/ocr'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

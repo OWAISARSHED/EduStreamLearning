@@ -1,253 +1,151 @@
-# EduStream — AI-Powered Learning Management System
+# 🎓 EduStream — AI-Assisted Learning & Multilingual Ecosystem
 
-EduStream is a full-stack learning management platform with role-based dashboards for **students**, **mentors**, and **admins**. It features multilingual AI translation, document summarization, discussion forums, course management with modules/resources/assignments/quizzes, and a notification system.
+![EduStream Banner](https://img.shields.io/badge/EduStream-v1.0-7030e0?style=for-the-badge&logo=react)
+![Stack](https://img.shields.io/badge/Stack-MERN_--_MongoDB_Express_React_Node-00c853?style=for-the-badge)
+![AI Powered](https://img.shields.io/badge/AI-Groq_%7C_OpenRouter_%7C_Whisper-ff9800?style=for-the-badge)
 
-## Tech Stack
+EduStream is a state-of-the-art **AI-Assisted Learning Platform** designed to empower students and mentors with real-time course progress tracking, protected video streaming, administrative verification portals, and multilingual AI assistance (supporting Urdu, Pashto, Kashmiri, Hindi, English, and Roman Urdu).
 
-| Layer       | Technology                                                       |
-| ----------- | ---------------------------------------------------------------- |
-| Frontend    | React 19, Vite, React Router, Lucide Icons, i18next, highlight.js |
-| Backend     | Node.js, Express.js, Mongoose, Nodemailer                        |
-| Database    | MongoDB (Atlas or local)                                         |
-| AI          | Google Gemini API (translation, summarization, chat)             |
-| Auth        | JWT (JSON Web Tokens) + bcryptjs                                 |
-| API Docs    | Swagger / OpenAPI 3.0 (swagger-jsdoc, swagger-ui-express)        |
-| Testing     | Jest, Supertest                                                  |
-| Container   | Docker, Docker Compose                                           |
-| i18n        | i18next, react-i18next, i18next-browser-languagedetector         |
+---
 
-## Features
+## 🚀 Key Features
 
-### Student
-- AI-powered multilingual prompt input (Urdu, Kashmiri, English)
-- Document repository with AI auto-tagging
-- AI document summarization & insights
-- Discussion forum with verified mentor answers
-- Course enrollment and progress tracking
-- AI chat assistant
-- Multilingual UI (English / Urdu toggle)
+### 👨‍🎓 1. Student Learning Platform
+- **Course Progress Tracking:** Real-time progress bar recalculating `% Completed` dynamically as videos and resources are watched.
+- **In-App Media Viewer:** Secure video streaming (`.mp4`, `.webm`) and PDF viewer embedded directly inside the browser with right-click and download protections (`controlsList="nodownload"`).
+- **My Courses Portal:** Quick access to all active learning paths and completion certificates.
 
-### Mentor
-- Course creation with modules, resources (PDF, PPT, video, audio), assignments, quizzes
-- Submit courses for admin approval
-- Student progress tracking
-- Review & verify forum threads
-- AI-suggested resource tags
-- Syntax highlighting in forum posts (code blocks)
+### 👨‍🏫 2. Mentor Workspace
+- **HD Course Uploads:** Supports up to **500MB** HD video lectures, module resources, assignments, and quizzes.
+- **Student Progress & Completion Tracker:** Dedicated dashboard displaying every enrolled student's progress bar, percentage completion, and green `✓ Course Completed` badges.
+- **Instant Completion Alerts:** Automated Socket.io & DB notifications sent to the mentor when a student completes a course.
 
-### Admin
-- Dashboard with platform stats
-- Course approvals — view full course details (resources by module, assignments, quizzes)
-- Mentor approvals with ID verification
-- User management (role changes, suspend)
-- AI usage analytics (daily charts, per-type distribution, top users)
-- Online time tracking for students & mentors
-- Admin password complexity enforcement (8+ chars, uppercase, lowercase, number, special char)
+### 🛡️ 3. Admin Verification & Approval Panel
+- **Course Approval Workflow:** Complete course review dashboard with inline **`▶ Play Video`** and **`👁 View File`** media modals.
+- **Mentor Verification:** Approve or reject new mentor registrations securely.
+- **System Audit Logs & Monitoring:** Track platform activity, online user statistics, and user account status.
 
-### Global
-- **i18n & RTL Support** — Full English/Urdu localization with right-to-left (RTL) layout switching for Urdu
-- **WCAG 2.1 Level AA** — Skip navigation link, ARIA roles/labels, keyboard accessibility, semantic landmarks
-- **Email Integration** — Password reset via email (Nodemailer/SMTP), notification emails
-- **Swagger API Docs** — Interactive OpenAPI 3.0 documentation at `/api-docs`
-- **Backend Unit Tests** — Model validation, password policy, email service, audit logging (Jest + Supertest)
-- **Docker Containerization** — Dockerfile + Docker Compose for backend and frontend services
-- **Syntax Highlighting** — Automatic code block detection and highlighting in the discussion forum
+### 🤖 4. AI Insights & Multilingual Engine
+- **Vision AI & Document OCR:** Built-in OpenRouter Vision (Gemini Flash) & `pdf-parse` for extracting insights from uploaded document files and images.
+- **Fast AI Assistant:** Powered by Groq AI SDK (`qwen/qwen3.8-27b`) for instant context-aware study Q&A.
+- **Voice Queries (Speech-to-Text):** Groq Whisper model (`whisper-large-v3-turbo`) for audio command processing.
+- **Multilingual Support:** Native assistance in **Urdu, Pashto, Kashmiri, Hindi, English, and Roman Urdu**.
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js 18+
-- MongoDB (running locally or a connection string)
-- Google Gemini API key (for AI features)
-- SMTP credentials (for password reset emails — optional for development)
+## 🛠️ Technology Stack
 
-### 1. Clone & Install
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend Framework** | React 19 (via Vite) |
+| **Styling & UI** | Vanilla CSS3 (Custom Glassmorphism Dark Theme & CSS Grid) |
+| **Backend Framework** | Node.js (v18+) + Express.js (v5) |
+| **Database & ORM** | MongoDB + Mongoose ORM |
+| **Real-time WebSockets** | Socket.io (Client & Server) |
+| **AI LLM Inference** | Groq AI SDK (`qwen/qwen3.8-27b`) |
+| **Vision & OCR** | OpenRouter Vision API (Gemini Flash) + `pdf-parse` |
+| **Speech-to-Text** | Groq Whisper Turbo (`whisper-large-v3-turbo`) |
+| **Authentication** | JSON Web Tokens (JWT) + Bcrypt.js |
+| **API Documentation** | Swagger UI (`/api-docs`) |
 
-```bash
-cd edu-stream
+---
 
-# Install frontend dependencies
-npm install
+## 📂 Project Structure
 
-# Install backend dependencies
-cd backend && npm install && cd ..
+```
+EduStream/
+├── backend/
+│   ├── config/             # Database connection & system configs
+│   ├── middleware/         # JWT Auth & Role-Based authorization guards
+│   ├── models/             # Mongoose Schemas (User, Course, VideoProgress, etc.)
+│   ├── routes/             # REST API endpoints (courses, users, ai, ocr, auth)
+│   ├── services/           # AI & Email service wrappers
+│   ├── uploads/            # Local media file storage (.gitignore excluded)
+│   ├── .env.example        # Environment variables template
+│   └── server.js           # Backend entry point (Express + WebSockets)
+├── src/
+│   ├── components/         # Reusable UI components & Protected Guards
+│   ├── context/            # AuthContext & Global state management
+│   ├── pages/              # App routes (Dashboard, Viewer, Admin, Mentor, AI)
+│   ├── services/           # Frontend API fetch services
+│   ├── styles/             # Modular CSS design system files
+│   └── App.jsx             # React Router routing configuration
+├── index.html              # Frontend entry HTML
+├── technologies_used.txt   # Detailed technology stack document
+└── README.md               # Repository documentation
 ```
 
-### 2. Environment Variables
+---
 
-Create `backend/.env`:
+## 🔑 Environment Variables Setup
+
+Create a `.env` file in the `backend` folder using the provided template `.env.example`:
 
 ```env
+# Database & Auth
+MONGODB_URI=mongodb://localhost:27017/edustream
+JWT_SECRET=your_jwt_secret_key_here
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/edustream
-JWT_SECRET=your-secret-key-change-in-production
-GEMINI_API_KEY=your-google-gemini-api-key
 
-# SMTP (optional — for password reset)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-SMTP_FROM=noreply@edustream.com
-CLIENT_URL=http://localhost:5173
+# AI Provider Keys
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=qwen/qwen3.8-27b
+GROQ_STT_MODEL=whisper-large-v3-turbo
+
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_MODEL=google/gemini-flash-1.5-exp
+
+# Application URLs
+BACKEND_URL=http://localhost:5000
+FRONTEND_URL=http://localhost:5173
 ```
 
-### 3. Run the Application
+> ⚠️ **Security Note:** Never commit your secret `.env` file or API keys to GitHub!
 
+---
+
+## ⚡ Quick Start Guide
+
+### 1️⃣ Clone the Repository
 ```bash
-# Terminal 1 — Backend
-cd backend && node server.js
+git clone https://github.com/OWAISARSHED/EduStreamLearning.git
+cd EduStreamLearning
+```
 
-# Terminal 2 — Frontend
+### 2️⃣ Start Backend Server
+```bash
+cd backend
+npm install
+# Ensure MongoDB is running locally or provide MONGODB_URI in .env
+node server.js
+```
+*Backend will run on `http://localhost:5000` (Swagger docs at `http://localhost:5000/api-docs`).*
+
+### 3️⃣ Start Frontend Development Server
+```bash
+# In the root folder (or terminal 2)
+npm install
 npm run dev
 ```
+*Frontend will run on `http://localhost:5173`.*
 
-Visit **http://localhost:5173**
+---
 
-### 3b. Run with Docker
+## 🔑 Default System Test Accounts
 
-```bash
-docker compose up --build
-```
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| 🔑 **Admin** | `admin@edustream.com` | `Admin@123` |
+| 👨‍🏫 **Mentor** | `mentor1@edustream.com` | `Mentor@123` |
+| 👨‍🎓 **Student** | `student1@edustream.com` | `Student@123` |
 
-- Backend: **http://localhost:5000**
-- Frontend: **http://localhost:3000**
-- Swagger Docs: **http://localhost:5000/api-docs**
+---
 
-### 4. Run Tests
+## 👥 Prepared By
+- **Owais Arshad** (Team Lead)
+- **Muhammad Saqib** (Team Member)
 
-```bash
-cd backend && npm test
-```
+---
 
-### 5. Seed Initial Data (Optional)
-
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Admin","email":"admin@edustream.com","password":"Admin@123","role":"admin"}'
-```
-
-> **Note:** Admin passwords require at least 8 characters including uppercase, lowercase, number, and special character.
-
-## Project Structure
-
-```
-edu-stream/
-├── src/                          # React frontend
-│   ├── components/
-│   │   └── layout/               # Layout, Sidebar, TopBar (with language toggle)
-│   ├── context/                  # Auth context
-│   ├── pages/                    # Page components
-│   ├── services/                 # API client, socket.js
-│   ├── styles/                   # CSS with RTL overrides
-│   ├── i18n.js                   # i18next configuration (en/ur)
-│   └── main.jsx                  # Entry point with i18n + Suspense
-├── backend/
-│   ├── models/                   # Mongoose models
-│   ├── routes/                   # Express routes (with Swagger JSDoc annotations)
-│   ├── middleware/               # Auth middleware
-│   ├── services/                 # Gemini AI service, email service
-│   ├── __tests__/                # Jest unit tests
-│   ├── swagger.js                # OpenAPI 3.0 spec
-│   ├── setup.js                  # Test setup (Express app factory)
-│   ├── jest.config.js            # Jest configuration
-│   └── server.js                 # Entry point (with Swagger UI mount)
-├── Dockerfile                    # Backend Docker image
-├── docker-compose.yml            # Backend + Frontend services
-└── package.json
-```
-
-## API Endpoints
-
-### Authentication
-| Method | Endpoint                          | Description                    |
-| ------ | --------------------------------- | ------------------------------ |
-| POST   | `/api/auth/login`                 | Login                          |
-| POST   | `/api/auth/register`              | Register (passwords ≥6 chars; admin: complexity enforced) |
-| GET    | `/api/auth/me`                    | Current user                   |
-| POST   | `/api/auth/forgot-password`       | Request password reset email   |
-| POST   | `/api/auth/reset-password/:token` | Reset password with token      |
-
-### Courses
-| Method | Endpoint                     | Description                |
-| ------ | ---------------------------- | -------------------------- |
-| POST   | `/api/courses`               | Create course              |
-| GET    | `/api/courses`               | List courses               |
-| GET    | `/api/courses/:id`           | Get course with resources  |
-| PUT    | `/api/courses/:id`           | Update course              |
-| DELETE | `/api/courses/:id`           | Delete course              |
-| POST   | `/api/courses/:id/submit`    | Submit for approval        |
-| POST   | `/api/courses/:id/approve`   | Approve course             |
-| POST   | `/api/courses/:id/reject`    | Reject course              |
-| POST   | `/api/courses/:id/enroll`    | Enroll student             |
-
-### AI
-| Method | Endpoint                  | Description              |
-| ------ | ------------------------- | ------------------------ |
-| POST   | `/api/ai/translate`       | Translate text           |
-| POST   | `/api/ai/summarize`       | Summarize document       |
-| POST   | `/api/ai/suggest-tags`    | Suggest resource tags    |
-| POST   | `/api/ai/chat`            | AI chat assistant        |
-| GET    | `/api/ai/summaries`       | User's summaries         |
-| GET    | `/api/ai/usage-analytics` | Admin: AI usage data     |
-
-### Forum
-| Method | Endpoint                              | Description              |
-| ------ | ------------------------------------- | ------------------------ |
-| GET    | `/api/forum/threads`                  | List threads             |
-| POST   | `/api/forum/threads`                  | Create thread            |
-| GET    | `/api/forum/threads/:id`              | Get thread with replies  |
-| PUT    | `/api/forum/threads/:id`              | Update thread            |
-| DELETE | `/api/forum/threads/:id`              | Delete thread            |
-| POST   | `/api/forum/threads/:id/verify`       | Verify thread (mentor)   |
-| POST   | `/api/forum/threads/:id/replies`      | Post reply               |
-
-### Resources
-| Method | Endpoint                             | Description                    |
-| ------ | ------------------------------------ | ------------------------------ |
-| GET    | `/api/resources`                     | List resources                 |
-| POST   | `/api/resources`                     | Create resource                |
-| GET    | `/api/resources/:id`                 | Get resource with access log   |
-| PUT    | `/api/resources/:id`                 | Update resource                |
-| DELETE | `/api/resources/:id`                 | Delete resource                |
-| POST   | `/api/resources/:id/access`          | Log resource access            |
-| GET    | `/api/resources/access-logs`         | Access logs (admin)            |
-| GET    | `/api/resources/:id/versions`        | Version history                |
-
-### Users
-| Method | Endpoint                      | Description              |
-| ------ | ----------------------------- | ------------------------ |
-| GET    | `/api/users`                  | List users (admin)       |
-| PUT    | `/api/users/:id`              | Update user (admin)      |
-| POST   | `/api/users/create`           | Create user (admin)      |
-| DELETE | `/api/users/:id`              | Delete user (admin)      |
-| GET    | `/api/users/mentor-stats`     | Mentor dashboard stats   |
-| GET    | `/api/users/online-time`      | User activity data       |
-| GET    | `/api/users/stats`            | Platform stats (admin)   |
-
-### Notifications
-| Method | Endpoint                       | Description             |
-| ------ | ------------------------------ | ----------------------- |
-| GET    | `/api/notifications`           | List notifications      |
-| PUT    | `/api/notifications/:id/read`  | Mark one as read        |
-| PUT    | `/api/notifications/read-all`  | Mark all as read        |
-
-### Milestones
-| Method | Endpoint               | Description         |
-| ------ | ---------------------- | ------------------- |
-| GET    | `/api/milestones`      | List milestones     |
-| POST   | `/api/milestones`      | Create milestone    |
-| PUT    | `/api/milestones/:id`  | Update milestone    |
-
-### API Documentation (Swagger)
-| Method | Endpoint      | Description                        |
-| ------ | ------------- | ---------------------------------- |
-| GET    | `/api-docs`   | Interactive Swagger UI (OpenAPI 3) |
-
-## Additional Resources
-
-- **Swagger API Docs** — Visit `/api-docs` on the backend for interactive API exploration
-- **Docker** — Use `docker compose up --build` to run the full stack in containers
-- **Tests** — Run `cd backend && npm test` for unit tests (coverage: models, password policy, email, audit logging)
-- **i18n** — Toggle language between English and Urdu using the language button in the top bar; Urdu enables RTL layout
+## 📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.

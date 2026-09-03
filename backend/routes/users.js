@@ -159,4 +159,13 @@ router.get('/online-time', authenticate, authorize('admin'), async (req, res) =>
   }
 });
 
+router.get('/my-enrollments', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({ student_id: req.user._id }).populate('course_id', 'title level category mentor_id status');
+    res.json(enrollments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

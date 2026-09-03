@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  type: { type: String, enum: ['mentor_reply', 'new_resource', 'system_warning', 'milestone', 'course_submitted', 'course_approved', 'course_rejected', 'course_enrolled'], index: true },
+  type: { type: String, enum: ['mentor_reply', 'new_resource', 'system_warning', 'milestone', 'course_submitted', 'course_approved', 'course_rejected', 'course_enrolled', 'course_completed'], index: true },
+
   title: { type: String, required: true },
   message: { type: String, required: true },
   related_entity_type: { type: String },

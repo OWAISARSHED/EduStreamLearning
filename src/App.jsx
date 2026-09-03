@@ -20,6 +20,8 @@ import AIChat from './pages/AIChat';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ResourceAccessLog from './pages/ResourceAccessLog';
+import CourseViewer from './pages/CourseViewer';
+
 
 function HomeRedirect() {
   const { user } = useAuth();
@@ -50,6 +52,8 @@ export default function App() {
         <Route path="/notifications" element={<ProtectedRoute roles={['student','mentor','admin']}><NotificationCenter /></ProtectedRoute>} />
         <Route path="/ai-chat" element={<ProtectedRoute roles={['student','mentor','admin']}><AIChat /></ProtectedRoute>} />
         <Route path="/resource-access" element={<ProtectedRoute roles={['mentor','admin']}><ResourceAccessLog /></ProtectedRoute>} />
+        <Route path="/course/:courseId" element={<ProtectedRoute roles={['student']}><CourseViewer /></ProtectedRoute>} />
+
       </Route>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<HomeRedirect />} />

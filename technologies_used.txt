@@ -1,0 +1,78 @@
+================================================================================
+                      EDUSTREAM LEARNING PLATFORM
+                    TECHNOLOGY STACK & SPECIFICATIONS
+================================================================================
+
+PROJECT NAME: EduStream — AI-Assisted Learning & Multilingual Ecosystem
+ARCHITECTURE: MERN Stack (MongoDB, Express.js, React.js, Node.js) + Microservices AI
+
+
+1. FRONTEND STACK (CLIENT-SIDE)
+--------------------------------------------------------------------------------
+• Core Framework: React.js (v19) — Component-based Single Page Application (SPA).
+• Build Tool & Dev Server: Vite (v8) — High-performance frontend bundling & HMR.
+• Styling Architecture: Vanilla CSS3 — Modern Dark Mode, Custom Design System,
+  Glassmorphism UI, Responsive Flexbox & CSS Grid layouts.
+• Router: React Router DOM (v6) — Client-side SPA routing & Protected Role-Based Guards.
+• Icons Library: Lucide React (`lucide-react`) — Modern vector SVG icon set.
+• Code Syntax Highlighting: Highlight.js (`highlight.js`) — Multilingual code snippets rendering.
+• Internationalization: i18next & react-i18next — Multi-language framework support.
+• Real-time WebSockets: Socket.io Client (`socket.io-client`).
+
+
+2. BACKEND STACK (SERVER-SIDE)
+--------------------------------------------------------------------------------
+• Runtime Environment: Node.js (v18+) — Event-driven asynchronous JavaScript runtime.
+• Web Framework: Express.js (v5) — RESTful APIs middleware & route management.
+• File & Video Upload Engine: Multer — Disk Storage engine supporting up to 500MB
+  large HD video lecture uploads, PDFs, and assignment submissions.
+• Real-time WebSockets: Socket.io (Server) — Live student activity tracking,
+  heartbeat monitoring, and instant mentor notifications.
+• Email Gateway: Nodemailer & Resend API — Automated transactional emails.
+• API Documentation Engine: Swagger UI Express & Swagger JSDoc — Interactive API docs at `/api-docs`.
+
+
+3. DATABASE & ORM
+--------------------------------------------------------------------------------
+• Database System: MongoDB — NoSQL Document Database storing Users, Courses,
+  VideoProgress, Enrollments, Resources, Forum Threads, Quizzes, and Audit Logs.
+• Object Data Modeling (ODM): Mongoose ORM (v9) — Schema definitions, index validation,
+  data sanitization, and populate relational references.
+
+
+4. AI, VISION, OCR & SPEECH INTEGRATION
+--------------------------------------------------------------------------------
+• LLM Engine: Groq AI SDK (`groq-sdk`) — High-speed LLM inference (`qwen/qwen3.8-27b`)
+  for AI Study Assistant chat, document summary, and quiz generation.
+• OCR & Vision Engine: OpenRouter Vision API (Gemini Flash Model) — High-accuracy
+  document and image text extraction & analytical processing.
+• Native PDF Stream Parser: `pdf-parse` (v2) — Pure Node.js PDF text extraction.
+• Speech-to-Text (STT): Groq Whisper Turbo (`whisper-large-v3-turbo`) — Voice audio transcript processing.
+• Dynamic Multilingual Prompt Engine: Supports Urdu, Pashto, Kashmiri, Hindi, English, and Roman Urdu.
+
+
+5. SECURITY & AUTHENTICATION
+--------------------------------------------------------------------------------
+• Authentication: JSON Web Tokens (JWT) — Stateless token authentication.
+• Password Hashing: Bcrypt.js — Salted password encryption.
+• Role-Based Access Control (RBAC): Enforces permissions for Admin, Mentor, and Student roles.
+• Secure Media Protection: `controlsList="nodownload"` & Right-Click prevention on videos/PDFs.
+
+
+6. QUICK STARTUP COMMANDS & SYSTEM CREDENTIALS
+--------------------------------------------------------------------------------
+Step 1 — Backend Terminal:
+  cd D:\EduStream\edu-stream\backend
+  taskkill /IM node.exe /F
+  node server.js
+
+Step 2 — Frontend Terminal:
+  cd D:\EduStream\edu-stream
+  npm run dev
+
+System Accounts:
+  • Admin:   admin@edustream.com   | Password: Admin@123
+  • Mentor:  mentor1@edustream.com | Password: Mentor@123
+  • Student: student1@edustream.com| Password: Student@123
+
+================================================================================

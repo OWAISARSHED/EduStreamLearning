@@ -1,57 +1,61 @@
+const Groq = require('groq-sdk');
 const axios = require('axios');
-const { GoogleAuth } = require('google-auth-library');
-const path = require('path');
 
-const SERVICE_ACCOUNT_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  path.resolve(__dirname, '../../serviceorchestrator-496409-3f2821217641.json');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const PROJECT_ID = process.env.GOOGLE_PROJECT_ID || 'serviceorchestrator-496409';
-const MODEL = process.env.GOOGLE_MODEL || 'gemini-2.5-flash';
-const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free';
 
-let cachedToken = null;
-let tokenExpiry = 0;
-
-const getAccessToken = async () => {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-  const auth = new GoogleAuth({
-    keyFile: SERVICE_ACCOUNT_PATH,
-    scopes: ['https://www.googleapis.com/auth/generative-language'],
+// ── Primary: Groq ─────────────────────────────────────────────
+const callGroq = async (messages) => {
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages,
+    temperature: 0.7,
+    max_tokens: 4096,
   });
-  const client = await auth.getClient();
-  const token = await client.getAccessToken();
-  cachedToken = token.token;
-  const expiresIn = token.res?.data?.expires_in || 3600;
-  tokenExpiry = Date.now() + (expiresIn - 60) * 1000;
-  return cachedToken;
+  return completion.choices[0]?.message?.content || '';
 };
 
-const callGemini = async (contents, systemInstruction = '') => {
-  try {
-    const token = await getAccessToken();
-    const url = `${API_BASE}/models/${MODEL}:generateContent`;
-
-    const body = { contents, generationConfig: { temperature: 0.7, maxOutputTokens: 4096 } };
-    if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
-
-    const response = await axios.post(url, body, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+// ── Fallback: OpenRouter ──────────────────────────────────────
+const callOpenRouter = async (messages) => {
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    { model: OPENROUTER_MODEL, messages, temperature: 0.7, max_tokens: 4096 },
+    {
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:5173',
+        'X-Title': 'EduStream',
+      },
       timeout: 60000,
-    });
+    }
+  );
+  return response.data.choices[0]?.message?.content || '';
+};
 
-    return response.data.candidates[0].content.parts[0].text;
-  } catch (error) {
-    console.error('Gemini API error:', error.message);
-    if (error.response) console.error('Status:', error.response.status, 'Data:', JSON.stringify(error.response.data).slice(0, 500));
-    throw new Error('AI service unavailable');
+// ── Unified AI call (Groq first, OpenRouter fallback) ─────────
+const callAI = async (messages) => {
+  try {
+    const result = await callGroq(messages);
+    if (result) return result;
+    throw new Error('Empty response from Groq');
+  } catch (groqErr) {
+    console.warn('[Groq] Error, trying OpenRouter:', groqErr.message);
+    try {
+      const result = await callOpenRouter(messages);
+      if (result) return result;
+      throw new Error('Empty response from OpenRouter');
+    } catch (orErr) {
+      console.error('[OpenRouter] Error:', orErr.message);
+      throw new Error('AI service unavailable. Please try again.');
+    }
   }
 };
 
-const toGeminiContent = (role, text) => ({
-  role: role === 'ai' || role === 'assistant' || role === 'model' ? 'model' : 'user',
-  parts: [{ text }],
-});
-
+// ── Language detection ────────────────────────────────────────
 const detectLanguage = (text) => {
   const arabicScript = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
   const devanagari = /[\u0900-\u097F]/;
@@ -60,15 +64,25 @@ const detectLanguage = (text) => {
   return 'English';
 };
 
+// ── Translate ─────────────────────────────────────────────────
 const translatePrompt = async (text, targetLang) => {
   const langMap = { en: 'English', ur: 'Urdu', ks: 'Kashmiri', ps: 'Pashto' };
-  const system = `You are a translator for educational content. Translate the user's text to ${langMap[targetLang] || 'English'}. Respond with ONLY the translated text, no explanations or notes.`;
-  return callGemini([toGeminiContent('user', text)], system);
+  const target = langMap[targetLang] || 'English';
+  return callAI([
+    { role: 'system', content: `You are a translator for educational content. Translate the user's text to ${target}. Respond with ONLY the translated text, no explanations or notes.` },
+    { role: 'user', content: text },
+  ]);
 };
 
+// ── Summarize Document ────────────────────────────────────────
 const summarizeDocument = async (text) => {
-  const system = 'You are an AI assistant that summarizes educational documents. Return ONLY a valid JSON object with these exact fields: summary_text (string), core_concepts (array of strings), actionable_tasks (array of {task: string, completed: false}), key_deadlines (array of {label: string, date: string}). No markdown, no code blocks, no extra text.';
-  const response = await callGemini([toGeminiContent('user', `Summarize this document:\n\n${text}`)], system);
+  const response = await callAI([
+    {
+      role: 'system',
+      content: 'You are an AI assistant that summarizes educational documents. Return ONLY a valid JSON object with these exact fields: summary_text (string), core_concepts (array of strings), actionable_tasks (array of {task: string, completed: false}), key_deadlines (array of {label: string, date: string}). No markdown, no code blocks, no extra text.',
+    },
+    { role: 'user', content: `Summarize this document:\n\n${text}` },
+  ]);
   try {
     return JSON.parse(response.replace(/```json|```/g, '').trim());
   } catch {
@@ -76,9 +90,12 @@ const summarizeDocument = async (text) => {
   }
 };
 
+// ── Suggest Tags ──────────────────────────────────────────────
 const suggestTags = async (title, description) => {
-  const system = 'You are an AI that suggests relevant tags for educational resources. Return ONLY a JSON array of tag strings, no other text or markdown.';
-  const response = await callGemini([toGeminiContent('user', `Suggest 3-5 tags for a resource titled "${title}" with description: "${description}"`)], system);
+  const response = await callAI([
+    { role: 'system', content: 'You are an AI that suggests relevant tags for educational resources. Return ONLY a JSON array of tag strings, no other text or markdown.' },
+    { role: 'user', content: `Suggest 3-5 tags for a resource titled "${title}" with description: "${description}"` },
+  ]);
   try {
     return JSON.parse(response.replace(/```json|```/g, '').trim());
   } catch {
@@ -86,19 +103,36 @@ const suggestTags = async (title, description) => {
   }
 };
 
+// ── AI Chat ───────────────────────────────────────────────────
 const chatWithAI = async (message, history = []) => {
   const detectedLang = detectLanguage(message);
-  const system = `You are an AI learning assistant for EduStream, an educational platform.
+  const systemPrompt = `You are an AI learning assistant for EduStream, an educational platform for students in Pakistan and South Asia.
 
-STRICT LANGUAGE RULE: Detect the language the user writes in and ALWAYS respond in that EXACT same language. If the user writes in ${detectedLang}, you MUST respond in ${detectedLang}. Never switch languages. Never explain this rule. This is mandatory.
+STRICT LANGUAGE RULE — This is your most important instruction:
+- Detect what language the user is writing in
+- ALWAYS respond in that EXACT same language
+- Current detected language: ${detectedLang}
 
-Supported languages: English, Urdu, Kashmiri, Pashto, Hindi.
-Be supportive, educational, and concise.`;
+Language mapping:
+- Urdu script (اردو) → respond in Urdu
+- English → respond in English
+- Pashto (پښتو) → respond in Pashto
+- Kashmiri (کشمیری) → respond in Kashmiri
+- Hindi (हिंदी) → respond in Hindi
+- Roman Urdu (latin letters but Urdu words like "kya", "hai", "nahi") → respond in Roman Urdu
 
-  const contents = history.map(m => toGeminiContent(m.role, m.content));
-  contents.push(toGeminiContent('user', message));
+NEVER switch to English if user writes in Urdu or any other language.
+NEVER explain or mention this language rule.
+Be supportive, educational, helpful, and concise.`;
 
-  return callGemini(contents, system);
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map(m => ({ role: m.role === 'ai' || m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+    { role: 'user', content: message },
+  ];
+
+  return callAI(messages);
 };
 
-module.exports = { callGemini, translatePrompt, summarizeDocument, suggestTags, chatWithAI };
+
+module.exports = { callAI, translatePrompt, summarizeDocument, suggestTags, chatWithAI };

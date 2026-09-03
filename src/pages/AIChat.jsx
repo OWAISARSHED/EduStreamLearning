@@ -28,7 +28,10 @@ export default function AIChat() {
       const data = await ai.chat(userMsg, history);
       setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I could not reach the AI. Please try again later.' }]);
+      const msg = e.message?.includes('fetch') 
+        ? '❌ Backend server not running. Please start the backend with: node server.js'
+        : `❌ ${e.message || 'AI unavailable. Please try again.'}`;
+      setMessages(prev => [...prev, { role: 'ai', content: msg }]);
     }
     setLoading(false);
   };

@@ -9,7 +9,9 @@ const Quiz = require('../models/Quiz');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const VideoProgress = require('../models/VideoProgress');
 const { authenticate, authorize } = require('../middleware/auth');
+
 
 const router = express.Router();
 
@@ -17,7 +19,8 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.resolve(__dirname, '../uploads')),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
+
 
 router.post('/upload', authenticate, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -338,6 +341,110 @@ router.post('/quizzes/:id/submit', authenticate, authorize('student'), async (re
     });
     const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
     res.json({ score, total, percentage, passed: percentage >= quiz.passing_score });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ── Save / update video progress (student) ──────────────────
+router.post('/:id/progress', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const { resource_id, watched_seconds, duration_seconds } = req.body;
+    if (!resource_id) return res.status(400).json({ message: 'resource_id required' });
+    const progress_percent = duration_seconds > 0
+      ? Math.min(100, Math.round((watched_seconds / duration_seconds) * 100))
+      : 0;
+    const completed = progress_percent >= 90;
+    const doc = await VideoProgress.findOneAndUpdate(
+      { student_id: req.user._id, course_id: req.params.id, resource_id },
+      { watched_seconds, duration_seconds, progress_percent, completed },
+      { upsert: true, new: true }
+    );
+
+    // Calculate total course completion percentage
+    const allProgress = await VideoProgress.find({ student_id: req.user._id, course_id: req.params.id });
+    const totalResources = await CourseResource.countDocuments({ course_id: req.params.id });
+    let overallPercent = 0;
+    if (totalResources > 0) {
+      const sumPercent = allProgress.reduce((acc, p) => acc + (p.progress_percent || 0), 0);
+      overallPercent = Math.min(100, Math.round(sumPercent / totalResources));
+    }
+    const isCompleted = overallPercent >= 90;
+
+    const existingEnrollment = await Enrollment.findOne({ student_id: req.user._id, course_id: req.params.id });
+    const wasCompleted = existingEnrollment?.completed || false;
+
+    await Enrollment.findOneAndUpdate(
+      { student_id: req.user._id, course_id: req.params.id },
+      { progress_percent: overallPercent, completed: isCompleted }
+    );
+
+    // Notify mentor if student just completed the course
+    if (isCompleted && !wasCompleted) {
+      const courseObj = await Course.findById(req.params.id);
+      const studentObj = await User.findById(req.user._id);
+      if (courseObj && courseObj.mentor_id) {
+        const notif = await Notification.create({
+          user_id: courseObj.mentor_id,
+          type: 'course_completed',
+          title: '🎉 Course Completed by Student!',
+          message: `Student ${studentObj?.name || 'A student'} has completed 100% of your course "${courseObj.title}"!`,
+          related_entity_type: 'courses',
+          related_entity_id: courseObj._id,
+        });
+        const io = req.app.get('io');
+        if (io) io.to(courseObj.mentor_id.toString()).emit('notification', notif);
+      }
+    }
+
+    res.json(doc);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ── Get progress of all students enrolled in mentor's courses ────
+router.get('/mentor/students-progress', authenticate, authorize('mentor'), async (req, res) => {
+  try {
+    const courses = await Course.find({ mentor_id: req.user._id });
+    const courseIds = courses.map(c => c._id);
+    const enrollments = await Enrollment.find({ course_id: { $in: courseIds } })
+      .populate('student_id', 'name email profile_picture_url')
+      .populate('course_id', 'title category level')
+      .sort({ updated_at: -1 });
+    res.json(enrollments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+// ── Get student's progress for a course ──────────────────────
+router.get('/:id/progress', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const progress = await VideoProgress.find({
+      student_id: req.user._id,
+      course_id: req.params.id,
+    });
+    res.json(progress);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ── Get enrolled course detail for student (with progress) ───
+router.get('/:id/learn', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findOne({ student_id: req.user._id, course_id: req.params.id });
+    if (!enrollment) return res.status(403).json({ message: 'You are not enrolled in this course.' });
+    const course = await Course.findById(req.params.id).populate('mentor_id', 'name email profile_picture_url');
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    const resources = await CourseResource.find({ course_id: course._id }).sort({ module_number: 1, order: 1 });
+    const assignments = await Assignment.find({ course_id: course._id });
+    const quizzes = await Quiz.find({ course_id: course._id });
+    const progress = await VideoProgress.find({ student_id: req.user._id, course_id: req.params.id });
+    res.json({ course, resources, assignments, quizzes, progress, enrollment });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

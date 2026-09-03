@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, BookOpen, CheckCircle, XCircle, Clock, Search, FileText, Target, Film, Headphones, Image, FolderOpen, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, BookOpen, CheckCircle, XCircle, Clock, Search, FileText, Target, Film, Headphones, Image, FolderOpen, Upload, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { courses } from '../services/api';
 import '../styles/admin.css';
 
@@ -10,6 +10,8 @@ export default function AdminCourseApprovals() {
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState(null);
+
 
   useEffect(() => { loadCourses(); }, []);
 
@@ -146,20 +148,31 @@ export default function AdminCourseApprovals() {
                     <FolderOpen size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {mod.title}
                   </h5>
                   {mod.items.map(r => {
-                    const ext = (r.file_type || '').toLowerCase();
-                    const icon = ['mp4', 'webm'].includes(ext) ? <Film size={16} style={{ color: '#2196f3' }} /> :
+                    const ext = (r.file_type || r.title?.split('.').pop() || '').toLowerCase();
+                    const icon = ['mp4', 'webm', 'mov'].includes(ext) ? <Film size={16} style={{ color: '#2196f3' }} /> :
                       ['mp3', 'wav'].includes(ext) ? <Headphones size={16} style={{ color: '#ff9800' }} /> :
                       ['jpg', 'jpeg', 'png', 'gif'].includes(ext) ? <Image size={16} style={{ color: '#00c853' }} /> :
                       <FileText size={16} style={{ color: 'var(--accent-light)' }} />;
+                    const fileUrl = r.file_url ? (r.file_url.startsWith('http') ? r.file_url : `http://localhost:5000${r.file_url}`) : '';
                     return (
-                      <div key={r._id} className="resource-list-item">
+                      <div key={r._id} className="resource-list-item" style={{ cursor: 'pointer' }} onClick={() => setPreviewMedia({ ...r, full_url: fileUrl, ext })}>
                         {icon}
-                        <span style={{ flex: 1, fontSize: 13 }}>{r.title}</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{r.title}</span>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 8, textTransform: 'uppercase' }}>{ext}</span>
                         {r.file_size ? <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 8 }}>{(r.file_size / 1024 / 1024).toFixed(1)} MB</span> : null}
+                        {fileUrl && (
+                          <button
+                            className="action-btn"
+                            style={{ background: 'rgba(112,48,224,0.15)', color: 'var(--accent-light)', padding: '4px 10px', fontSize: 12 }}
+                            onClick={(e) => { e.stopPropagation(); setPreviewMedia({ ...r, full_url: fileUrl, ext }); }}
+                          >
+                            {['mp4', 'webm', 'mov'].includes(ext) ? '▶ Play Video' : '👁 View File'}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
+
                 </div>
               ));
             })()}
@@ -250,6 +263,45 @@ export default function AdminCourseApprovals() {
           )}
         </div>
       )}
+
+      {/* ── Media Preview Modal ── */}
+      {previewMedia && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setPreviewMedia(null)}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: 14, padding: 20, maxWidth: 840, width: '92vw', maxHeight: '90vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{previewMedia.title || previewMedia.file_name || 'File Preview'}</h3>
+              <button onClick={() => setPreviewMedia(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={22} /></button>
+            </div>
+            
+            <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+              {['mp4', 'webm', 'mov'].includes(previewMedia.ext) ? (
+                <video controls autoPlay src={previewMedia.full_url} style={{ width: '100%', maxHeight: '70vh' }} />
+              ) : ['mp3', 'wav'].includes(previewMedia.ext) ? (
+                <audio controls autoPlay src={previewMedia.full_url} style={{ width: '90%' }} />
+              ) : ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(previewMedia.ext) ? (
+                <img src={previewMedia.full_url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+              ) : previewMedia.ext === 'pdf' ? (
+                <iframe src={previewMedia.full_url} title="PDF Preview" style={{ width: '100%', height: '70vh', border: 'none' }} />
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <FileText size={48} style={{ marginBottom: 12 }} />
+                  <p style={{ fontSize: 14, marginBottom: 16 }}>This file type (.{previewMedia.ext}) cannot be previewed inline.</p>
+                  <a href={previewMedia.full_url} target="_blank" rel="noreferrer" className="btn-primary" style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>
+                    Open / Download File ↗
+                  </a>
+                </div>
+              )}
+            </div>
+            
+            {previewMedia.full_url && (
+              <div style={{ textAlign: 'right' }}>
+                <a href={previewMedia.full_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--primary-light)' }}>Open in new tab ↗</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
+

@@ -1,30 +1,28 @@
+// Cleanup script — removes all seed/dummy data but keeps users
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
-const dns = require('dns');
-dns.setServers(['8.8.8.8', '1.1.1.1']);
-const dotenv = require('dotenv');
-dotenv.config();
 
-async function main() {
+async function cleanup() {
   await mongoose.connect(process.env.MONGODB_URI);
-  const db = mongoose.connection.db;
+  console.log('Connected to MongoDB');
 
-  const users = await db.collection('users').deleteMany({ role: { $ne: 'admin' } });
-  console.log('Deleted ' + users.deletedCount + ' non-admin users');
+  const collections = ['courses', 'courseresources', 'resources', 'enrollments',
+    'assignments', 'submissions', 'quizzes', 'aisummaries',
+    'notifications', 'forumthreads', 'milestones', 'auditlogs'];
 
-  const courses = await db.collection('courses').deleteMany({});
-  console.log('Deleted ' + courses.deletedCount + ' courses');
-  const enrollments = await db.collection('enrollments').deleteMany({});
-  console.log('Deleted ' + enrollments.deletedCount + ' enrollments');
-  const submissions = await db.collection('submissions').deleteMany({});
-  console.log('Deleted ' + submissions.deletedCount + ' submissions');
-  const quizzes = await db.collection('quizzes').deleteMany({});
-  console.log('Deleted ' + quizzes.deletedCount + ' quizzes');
-  const assignments = await db.collection('assignments').deleteMany({});
-  console.log('Deleted ' + assignments.deletedCount + ' assignments');
-  const resources = await db.collection('courseresources').deleteMany({});
-  console.log('Deleted ' + resources.deletedCount + ' resources');
+  for (const col of collections) {
+    try {
+      const result = await mongoose.connection.collection(col).deleteMany({});
+      console.log(`✅ Cleared ${col}: ${result.deletedCount} documents`);
+    } catch (e) {
+      console.log(`⚠️  ${col}: ${e.message}`);
+    }
+  }
 
+  // Reset mentor_status for seed mentors so they appear as pending again (optional)
+  // Keeping users intact
+  console.log('\n✅ Cleanup complete. Users are preserved.');
   await mongoose.disconnect();
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+cleanup().catch(console.error);

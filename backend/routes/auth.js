@@ -4,9 +4,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { authenticate } = require('../middleware/auth');
-const { sendPasswordResetEmail } = require('../services/email');
+const { sendPasswordResetEmail, sendEmail } = require('../services/email');
 
 const router = express.Router();
+
+// In-memory OTP store: { email -> { code, expiresAt, verified } }
+const otpStore = new Map();
 
 const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 
@@ -20,6 +23,82 @@ async function logAuthEvent(actor_id, action_type, details, ip_address) {
     await AuditLog.create({ actor_id, action_type, target_entity: 'auth', details, ip_address });
   } catch (e) { /* silent */ }
 }
+
+// ── Send OTP for email verification ──────────────────────────
+router.post('/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already registered' });
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+    otpStore.set(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 }); // 10 min
+
+    // Always log OTP to console for dev/testing
+    console.log(`\n📧 OTP for ${email}: ${code}\n`);
+
+    // Try to send via Nodemailer (Gmail SMTP)
+    let emailSent = false;
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Your EduStream Verification Code',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f17;border-radius:16px;border:1px solid #2a2a3d">
+            <div style="text-align:center;margin-bottom:24px">
+              <div style="display:inline-block;width:48px;height:48px;background:linear-gradient(135deg,#7030e0,#a855f7);border-radius:12px;line-height:48px;font-size:24px;font-weight:900;color:#fff">E</div>
+              <h2 style="color:#fff;margin:12px 0 4px">EduStream</h2>
+              <p style="color:#8884a0;font-size:13px;margin:0">AI-Powered Learning Platform</p>
+            </div>
+            <h3 style="color:#fff;font-size:18px;margin-bottom:8px">Your Verification Code</h3>
+            <p style="color:#a0a0b8;font-size:13px;margin-bottom:24px">
+              Use the code below to verify your email address.<br/>
+              It expires in <strong style="color:#fff">10 minutes</strong>.
+            </p>
+            <div style="background:#1a1a2e;border:2px dashed #7030e0;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+              <span style="font-size:40px;font-weight:900;letter-spacing:12px;color:#a855f7">${code}</span>
+            </div>
+            <p style="color:#606080;font-size:12px;text-align:center">If you did not request this, please ignore this email.</p>
+          </div>
+        `,
+      });
+      emailSent = true;
+    } catch (emailErr) {
+      console.warn('[Email] Could not send:', emailErr.message);
+    }
+
+    const isDev = process.env.NODE_ENV !== 'production';
+    res.json({
+      message: emailSent
+        ? 'Verification code sent to your email.'
+        : 'Email not configured. Use the code for testing.',
+      ...(isDev && { dev_code: code }),
+    });
+  } catch (error) {
+    console.error('OTP send error:', error);
+    res.status(500).json({ message: 'Failed to generate verification code. Please try again.' });
+  }
+});
+
+// ── Verify OTP ────────────────────────────────────────────────
+router.post('/verify-otp', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) return res.status(400).json({ message: 'Email and code are required' });
+
+  const record = otpStore.get(email);
+  if (!record) return res.status(400).json({ message: 'No code sent to this email. Please request a new code.' });
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(email);
+    return res.status(400).json({ message: 'Code expired. Please request a new one.' });
+  }
+  if (record.code !== code.trim()) return res.status(400).json({ message: 'Incorrect code. Please try again.' });
+
+  // Mark as verified (keep in store so register can check)
+  otpStore.set(email, { ...record, verified: true });
+  res.json({ message: 'Email verified successfully.' });
+});
 
 /**
  * @openapi
@@ -51,6 +130,13 @@ router.post('/register', async (req, res) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'Email already registered' });
 
+    // Check email was verified via OTP
+    const otpRecord = otpStore.get(email);
+    if (!otpRecord || !otpRecord.verified) {
+      return res.status(400).json({ message: 'Email not verified. Please verify your email first.' });
+    }
+    otpStore.delete(email); // clear after use
+
     if (role === 'admin' && !PASSWORD_COMPLEXITY.test(password)) {
       return res.status(400).json({ message: 'Admin password must be at least 8 characters with uppercase, lowercase, number, and special character' });
     }
@@ -69,6 +155,7 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 /**
  * @openapi

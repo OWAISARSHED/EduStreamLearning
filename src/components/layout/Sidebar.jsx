@@ -9,6 +9,7 @@ const allNavItems = {
   student: [
     { section: 'Main Menu' },
     { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { label: 'My Courses', icon: GraduationCap, path: '/dashboard' },
     { label: 'AI Prompt', icon: Sparkles, path: '/ai-prompt' },
     { label: 'Forum', icon: MessageSquare, path: '/forum' },
     { label: 'AI Insights', icon: FileText, path: '/ai-insights' },
@@ -18,6 +19,7 @@ const allNavItems = {
     { label: 'Notifications', icon: Bell, path: '/notifications' },
     { label: 'Profile', icon: Settings, path: '/profile' },
   ],
+
   mentor: [
     { section: 'Main Menu' },
     { label: 'Dashboard', icon: LayoutDashboard, path: '/mentor' },

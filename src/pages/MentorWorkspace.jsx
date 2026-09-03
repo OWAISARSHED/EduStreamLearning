@@ -14,9 +14,26 @@ export default function MentorWorkspace() {
   const [form, setForm] = useState({ title: '', description: '', category: '', level: 'beginner', language: 'English' });
   const [modules, setModules] = useState([{ title: 'Module 1', files: [] }]);
   const [saving, setSaving] = useState(false);
+  const [studentProgressList, setStudentProgressList] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   const fileInputRefs = useRef({});
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+    loadStudentProgress();
+  }, []);
+
+  const loadStudentProgress = async () => {
+    setLoadingStudents(true);
+    try {
+      const res = await fetch('/api/courses/mentor/students-progress', {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('edustream_token') }
+      });
+      if (res.ok) setStudentProgressList(await res.json());
+    } catch (e) {}
+    setLoadingStudents(false);
+  };
+
 
   const loadData = async () => {
     try {
@@ -448,30 +465,74 @@ export default function MentorWorkspace() {
 
       {activeTab === 'students' && (
         <div className="mentor-card">
-          <div className="mentor-card-header">
-            <h3><Users size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Student Progress</h3>
+          <div className="mentor-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3><Users size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Student Progress & Course Completion</h3>
+            <button className="action-btn" onClick={loadStudentProgress} style={{ fontSize: 12, padding: '4px 10px' }}>↻ Refresh</button>
           </div>
-          {myCourses.filter(c => c.status === 'approved').length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: 16, textAlign: 'center' }}>No approved courses yet. Create a course and submit for approval first.</p>
-          ) : myCourses.filter(c => c.status === 'approved').map((c, i) => (
-            <div key={c._id} className="student-item" style={{ cursor: 'pointer' }} onClick={async () => {
-              try {
-                const data = await courses.students(c._id);
-                alert(`Course: ${c.title}\nEnrolled: ${data.length} student(s)\n\n${data.map(s => `• ${s.student_id?.name || 'Unknown'} — ${Math.round(s.watch_time_seconds / 60)} min watched, ${s.progress_percent}% complete`).join('\n') || '(no students enrolled yet)'}`);
-              } catch (e) { alert('Could not load student data'); }
-            }}>
-              <div className="student-avatar" style={{ background: ['#7030e0','#00c853','#ff9800','#2196f3'][i % 4] }}>
-                {(c.title || '?')[0].toUpperCase()}
-              </div>
-              <div className="student-info">
-                <h4>{c.title}</h4>
-                <span>{c.enrolled_count} enrolled students · {c.level}</span>
-              </div>
-              <button className="action-btn"><ExternalLink size={14} /> View Students</button>
+
+          {loadingStudents ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: 24, textAlign: 'center' }}>Loading student progress...</p>
+          ) : studentProgressList.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: 24, textAlign: 'center' }}>No students enrolled in your courses yet.</p>
+          ) : (
+            <div style={{ overflowX: 'auto', marginTop: 12 }}>
+              <table className="admin-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Student</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Course</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Progress</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Status</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Enrolled Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentProgressList.map((e, i) => {
+                    const studentName = e.student_id?.name || 'Student';
+                    const studentEmail = e.student_id?.email || '';
+                    const courseTitle = e.course_id?.title || 'Course';
+                    const pct = e.progress_percent || 0;
+                    const isDone = e.completed || pct >= 90;
+
+                    return (
+                      <tr key={e._id || i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{studentName}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{studentEmail}</div>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: 13, fontWeight: 500 }}>{courseTitle}</td>
+                        <td style={{ padding: '12px', minWidth: 150 }}>
+                          <div className="progress-bar" style={{ height: 6, marginBottom: 4, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div className="progress-fill" style={{ height: '100%', width: `${pct}%`, background: isDone ? '#00c853' : '#7030e0', transition: 'width 0.3s' }} />
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: isDone ? '#00c853' : 'var(--accent-light)' }}>
+                            {pct}% Completed
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {isDone ? (
+                            <span style={{ background: 'rgba(0,200,83,0.15)', color: '#00c853', padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              ✓ Course Completed
+                            </span>
+                          ) : (
+                            <span style={{ background: 'rgba(255,152,0,0.15)', color: '#ff9800', padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
+                              In Progress ({pct}%)
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: 12, color: 'var(--text-muted)' }}>
+                          {e.created_at ? new Date(e.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </div>
       )}
+
     </>
   );
 }

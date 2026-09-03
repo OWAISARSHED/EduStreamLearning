@@ -21,24 +21,47 @@ export default function StudentDashboard() {
 
   const loadEnrollments = async () => {
     try {
-      const res = await fetch('/api/courses', { headers: { Authorization: 'Bearer ' + localStorage.getItem('edustream_token') } });
-      if (res.ok) {
-        const all = await res.json();
-        const enrolled = all.filter(c => c.is_enrolled);
-        setEnrolledCourses(Array.isArray(enrolled) ? enrolled : []);
+      const token = localStorage.getItem('edustream_token');
+      // Get all approved courses
+      const res = await fetch('/api/courses?status=approved', { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) return;
+      const all = await res.json();
+      // Get enrollments for current student
+      const enrollRes = await fetch('/api/users/my-enrollments', { headers: { Authorization: 'Bearer ' + token } });
+      if (enrollRes.ok) {
+        const enrollments = await enrollRes.json();
+        const enrollMap = new Map();
+        (enrollments || []).forEach(e => {
+          if (e.course_id) {
+            const cid = typeof e.course_id === 'object' ? e.course_id._id?.toString() : e.course_id.toString();
+            enrollMap.set(cid, e.progress_percent || 0);
+          }
+        });
+        const enrolled = (Array.isArray(all) ? all : [])
+          .filter(c => enrollMap.has(c._id?.toString()))
+          .map(c => ({
+            ...c,
+            progress_percent: enrollMap.get(c._id?.toString()) || 0,
+          }));
+        setEnrolledCourses(enrolled);
+        setAvailableCourses((Array.isArray(all) ? all : []).filter(c => !enrollMap.has(c._id?.toString())));
+      } else {
+        setAvailableCourses(Array.isArray(all) ? all : []);
       }
     } catch (e) { /* ignore */ }
   };
 
+
   const handleEnroll = async (courseId) => {
     try {
       await courses.enroll(courseId);
-      loadEnrollments();
-      courses.list({}).then(setAvailableCourses).catch(() => {});
+      await loadEnrollments();
+      navigate(`/course/${courseId}`);
     } catch (e) {
-      alert(e.message);
+      alert(e.message || 'Enrollment failed');
     }
   };
+
 
   const s = user?.stats || {};
 
@@ -80,44 +103,35 @@ export default function StudentDashboard() {
           <div className="dashboard-card-header">
             <h3>My Enrolled Courses</h3>
           </div>
-          {enrolledCourses.length === 0 && availableCourses.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0' }}>No courses available yet</p>
+          {enrolledCourses.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0' }}>
+              No enrolled courses yet. Enroll in a course below to start learning!
+            </p>
           ) : (
-            <>
-              {enrolledCourses.map((c, i) => (
-                <div key={i} className="course-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/resources')}>
-                  <div className="course-card-top">
-                    <div>
-                      <h4>{c.title}</h4>
-                      <div className="mentor">{c.mentor_id?.name || 'Instructor'}</div>
-                    </div>
-                    <span className="status in-progress">{c.enrolled_count || 0} students</span>
+            enrolledCourses.map((c, i) => (
+              <div key={c._id || i} className="course-card">
+                <div className="course-card-top">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</h4>
+                    <div className="mentor">{c.mentor_id?.name || 'Instructor'} &bull; {c.level}</div>
                   </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill purple" style={{ width: `${c.progress_percent || 0}%` }} />
-                  </div>
-                  <div className="progress-info">
-                    <span>Progress</span>
-                    <span>{c.progress_percent || 0}%</span>
-                  </div>
+                  <button
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}
+                    onClick={() => navigate(`/course/${c._id}`)}
+                  >
+                    ▶ Watch Now
+                  </button>
                 </div>
-              ))}
-              {availableCourses.filter(c => !enrolledCourses.find(e => e._id === c._id)).slice(0, 3).map((c, i) => (
-                <div key={i} className="course-card">
-                  <div className="course-card-top">
-                    <div>
-                      <h4>{c.title}</h4>
-                      <div className="mentor">{c.mentor_id?.name || 'Instructor'}  |  {c.level}</div>
-                    </div>
-                    <button className="action-btn" style={{ background: 'rgba(112,48,224,0.15)', color: 'var(--accent-light)' }}
-                      onClick={() => handleEnroll(c._id)}>
-                      Enroll
-                    </button>
-                  </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{(c.description || '').substring(0, 100)}...</p>
+                <div className="progress-bar" style={{ marginTop: 10 }}>
+                  <div className="progress-fill purple" style={{ width: `${c.progress_percent || 0}%` }} />
                 </div>
-              ))}
-            </>
+                <div className="progress-info">
+                  <span>Course Progress</span>
+                  <span style={{ color: '#7030e0', fontWeight: 600 }}>{c.progress_percent || 0}%</span>
+                </div>
+              </div>
+            ))
           )}
         </div>
 

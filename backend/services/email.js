@@ -11,22 +11,19 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS || process.env.SMTP_PASS === 'YOUR_GMAIL_APP_PASSWORD_HERE') {
     console.log(`[Email Mock] To: ${to}, Subject: ${subject}`);
-    return;
+    throw new Error('SMTP not configured');
   }
-  try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"EduStream" <noreply@edustream.app>',
-      to,
-      subject,
-      html,
-    });
-    console.log(`[Email Sent] To: ${to}, Subject: ${subject}`);
-  } catch (error) {
-    console.error('[Email Error]', error.message);
-  }
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || '"EduStream" <noreply@edustream.app>',
+    to,
+    subject,
+    html,
+  });
+  console.log(`[Email Sent] To: ${to}, Subject: ${subject}`);
 };
+
 
 const sendPasswordResetEmail = async (email, resetUrl) => {
   await sendEmail({
